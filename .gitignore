@@ -1,0 +1,20 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.env
+
+# Jupyter
+.ipynb_checkpoints/
+
+# OS / editors
+.DS_Store
+.vscode/
+.idea/
+
+# Generated data (raw data is small and committed for reproducibility)
+data/processed/*
+!data/processed/.gitkeep
+*.db
+*.sqlite
