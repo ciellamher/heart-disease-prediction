@@ -14,8 +14,10 @@ An interpretable model that predicts the presence of heart disease from routine 
 
 - [x] Project setup and data dictionary *(Week 1)*
 - [x] Initial data audit: shape, types, missing values, duplicates *(Week 1)*
-- [ ] Data cleaning and exploratory data analysis with pandas
-- [ ] SQL queries on a SQLite copy of the dataset
+- [x] Data cleaning: missing values, types, one-hot encoding *(Week 2)*
+- [x] SQLite database with a normalized schema (`heart.db`) *(Week 2)*
+- [ ] Exploratory data analysis with pandas
+- [ ] SQL queries on the SQLite database
 - [ ] Baseline models with accuracy, recall and ROC-AUC
 - [ ] Feature-importance charts
 - [ ] Simple results dashboard
@@ -30,12 +32,17 @@ An interpretable model that predicts the presence of heart disease from routine 
 heart-disease-prediction/
 ├── data/
 │   ├── raw/               # original, untouched data
-│   ├── processed/         # cleaned data (generated, not committed)
+│   ├── processed/         # cleaned CSVs + heart.db (generated, not committed)
 │   └── DATA_DICTIONARY.md
 ├── notebooks/
-│   └── 01_data_overview.ipynb
+│   ├── 01_data_overview.ipynb
+│   └── 02_data_cleaning.ipynb
+├── sql/
+│   └── schema.sql         # SQLite table schema
 ├── src/
-│   └── data_loading.py    # reusable loading helpers
+│   ├── data_loading.py    # reusable loading helpers
+│   ├── cleaning.py        # clean + encode -> data/processed/*.csv
+│   └── database.py        # load cleaned data into heart.db
 ├── reports/figures/
 ├── requirements.txt
 └── README.md
@@ -49,7 +56,12 @@ cd heart-disease-prediction
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
-jupyter notebook notebooks/01_data_overview.ipynb
+
+# Build the cleaned data and the SQLite database
+python -m src.cleaning
+python -m src.database
+
+jupyter notebook notebooks/
 ```
 
 ## Tools
