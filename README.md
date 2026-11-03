@@ -75,9 +75,9 @@ Cholesterol looked weak on its own in the EDA (42% / 40% / 51% disease across th
 
 ## Dashboard
 
-`streamlit run app.py` opens a four-tab dashboard: model results, an interactive **threshold slider** showing the trade-off between missed cases and false alarms, feature importance with plain-language explanations, and the EDA summary.
+`streamlit run app.py` opens a dashboard with four tabs: model results, a threshold slider showing missed cases against false alarms, feature importance, and the data summary.
 
-| Recall vs. false alarms | What drives risk |
+| Threshold | Features |
 |---|---|
 | ![Threshold explorer](reports/screenshots/dashboard_threshold.png) | ![Feature importance tab](reports/screenshots/dashboard_drivers.png) |
 

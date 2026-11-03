@@ -91,7 +91,7 @@ def model_comparison(test: pd.DataFrame):
     ax.set_xlabel("Score on held-out test set (75 patients, threshold 0.5)")
     _clean_y_axis(ax)
     ax.legend(loc="lower center", bbox_to_anchor=(0.5, 1.0), ncol=3, handlelength=1)
-    ax.set_title("Model comparison", fontsize=13, pad=30)
+    ax.set_title("Test set scores", fontsize=13, pad=30)
     return fig
 
 
@@ -107,7 +107,7 @@ def roc_curves(roc: dict[str, pd.DataFrame], auc: pd.Series):
     ax.set_xlabel("False-positive rate (healthy patients flagged)")
     ax.set_ylabel("True-positive rate (recall)")
     ax.legend(loc="lower right")
-    ax.set_title("ROC curves on the test set", fontsize=13)
+    ax.set_title("ROC curves, test set", fontsize=13)
     return fig
 
 
@@ -157,7 +157,7 @@ def logistic_coefficients(coefs: pd.Series):
     ax.legend(handles=[Patch(color=DISEASE, label="Raises predicted risk"),
                        Patch(color=NO_DISEASE, label="Lowers predicted risk")],
               loc="lower right")
-    ax.set_title("What the Logistic Regression weighs", fontsize=13)
+    ax.set_title("Logistic regression coefficients", fontsize=13)
     return fig
 
 
@@ -172,5 +172,5 @@ def permutation_importance_chart(imp: pd.DataFrame, top: int = 10):
     ax.axvline(0, color=AXIS, linewidth=1)
     ax.set_xlabel("Drop in test ROC-AUC when the feature is shuffled")
     _clean_y_axis(ax)
-    ax.set_title(f"Random Forest: top {top} features (permutation importance)", fontsize=13)
+    ax.set_title(f"Random forest permutation importance, top {top}", fontsize=13)
     return fig

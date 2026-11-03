@@ -9,7 +9,6 @@ no generated files.
 from pathlib import Path
 
 import matplotlib.pyplot as plt
-import pandas as pd
 import streamlit as st
 from sklearn.metrics import confusion_matrix
 
@@ -21,11 +20,23 @@ from src.modeling import (
 
 FIG_DIR = Path(__file__).parent / "reports" / "figures"
 
-st.set_page_config(page_title="Heart Disease Prediction", layout="wide")
+st.set_page_config(page_title="Heart disease prediction", layout="wide")
+st.markdown(
+    """
+    <style>
+      .block-container { max-width: 1180px; padding-top: 2.5rem; }
+      h1 { font-size: 1.9rem !important; font-weight: 600 !important; letter-spacing: -0.01em; }
+      [data-testid="stMetricValue"] { font-size: 1.6rem; font-weight: 500; }
+      [data-testid="stMetricLabel"] p { color: #52514e; }
+      [data-testid="stCaptionContainer"] { color: #52514e; }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
 plots.apply_style()
 
 
-@st.cache_resource(show_spinner="Training models…")
+@st.cache_resource(show_spinner="Training models...")
 def load():
     X, y = prepare_data()
     results = evaluate(X, y)
@@ -43,96 +54,92 @@ X, y, results, coefs, imp = load()
 y_test = results.y_test
 best_prob = results.test_probs[BEST_MODEL]
 tuned = results.test_at_threshold
+tuned_cm = confusion_matrix(y_test, (best_prob >= results.threshold).astype(int), labels=[0, 1])
+n_sick = int(y_test.sum())
 
-# --- Header ------------------------------------------------------------------
-st.title("Heart Disease Prediction")
-st.markdown(
-    f"Interpretable models that predict heart disease from routine clinical measurements. "
-    f"UCI Cleveland dataset: {len(y)} patients, {X.shape[1]} features."
-)
-st.warning(
-    "**Not medical advice.** This is a learning project on a small 1988 hospital dataset. "
-    "It is not validated for clinical use and must not be used to diagnose anyone.",
-    icon="⚠️",
+st.title("Heart disease prediction")
+st.caption(
+    f"UCI Cleveland data, {len(y)} patients. Logistic regression, decision tree and random forest, "
+    f"compared on a held-out test set of {len(y_test)}. Student project, not for medical use."
 )
 
 c1, c2, c3, c4 = st.columns(4)
-c1.metric("Best model", BEST_MODEL)
-c2.metric("ROC-AUC (test)", f"{tuned['roc_auc']:.2f}")
-c3.metric(f"Recall at threshold {results.threshold}", f"{tuned['recall']:.0%}",
-          help="Share of patients with disease the model flags.")
-c4.metric("Precision at that threshold", f"{tuned['precision']:.0%}",
-          help="Share of flagged patients who really have disease.")
+c1.metric("ROC-AUC", f"{tuned['roc_auc']:.2f}")
+c2.metric("Recall", f"{tuned['recall']:.0%}")
+c3.metric("Precision", f"{tuned['precision']:.0%}")
+c4.metric("Missed cases", f"{int(tuned_cm[1, 0])} of {n_sick}")
+st.caption(f"Logistic regression on the test set, flagging patients above a {results.threshold} probability.")
 
-tab_results, tab_threshold, tab_drivers, tab_data = st.tabs(
-    ["Model results", "Recall vs. false alarms", "What drives risk", "About the data"])
+st.write("")
+tab_results, tab_threshold, tab_features, tab_data = st.tabs(
+    ["Results", "Threshold", "Features", "Data"])
 
-# --- Model results -------------------------------------------------------------
 with tab_results:
-    st.markdown(
-        "Three baselines trained on 222 patients and scored once on 75 held-out patients "
-        "(default threshold 0.5). **Recall matters most:** missing a sick patient is worse "
-        "than a false alarm."
+    st.write(
+        f"Each model was trained on {len(y) - len(y_test)} patients and scored once on the other "
+        f"{len(y_test)}, using a 0.5 threshold. Logistic regression did best on recall, the metric "
+        "that matters most here, and is also the easiest to explain."
     )
     table = results.test.rename(columns=plots.METRIC_LABELS)
-    st.dataframe(table.style.format("{:.2f}").highlight_max(axis=0, color="#e4e0fa"),
-                 use_container_width=True)
+    st.dataframe(table.style.format("{:.2f}"), use_container_width=True)
     left, right = st.columns(2)
     with left:
         show(plots.model_comparison(results.test))
     with right:
         show(plots.roc_curves(results.roc, results.test["roc_auc"]))
-    with st.expander("Cross-validation on the training set (5 folds, mean)"):
+    with st.expander("Cross-validation, training set (5 folds)"):
         cv = results.cv[[f"{m}_mean" for m in plots.METRIC_LABELS]]
         cv.columns = list(plots.METRIC_LABELS.values())
         st.dataframe(cv.style.format("{:.3f}"), use_container_width=True)
 
-# --- Threshold explorer --------------------------------------------------------
 with tab_threshold:
-    st.markdown(
-        f"The model outputs a probability. The **threshold** decides when a patient is flagged. "
-        f"Lower it to catch more cases at the cost of more false alarms. "
-        f"The recall-focused setting ({results.threshold}) was chosen on training data only, "
-        f"targeting {TARGET_RECALL:.0%} recall."
+    st.write(
+        "The model gives each patient a probability, and anyone above the threshold is flagged. "
+        "A lower threshold misses fewer sick patients but flags more healthy ones. "
+        f"The default of {results.threshold} was chosen on the training data to reach about "
+        f"{TARGET_RECALL:.0%} recall."
     )
-    threshold = st.slider("Decision threshold", 0.05, 0.95, float(results.threshold), 0.01)
+    threshold = st.slider("Threshold", 0.05, 0.95, float(results.threshold), 0.01)
     pred = (best_prob >= threshold).astype(int)
     s = scores(y_test, pred, best_prob)
     cm = confusion_matrix(y_test, pred, labels=[0, 1])
     k1, k2, k3, k4 = st.columns(4)
     k1.metric("Recall", f"{s['recall']:.0%}")
     k2.metric("Precision", f"{s['precision']:.0%}")
-    k3.metric("Missed cases", int(cm[1, 0]), help=f"of {int(y_test.sum())} patients with disease")
-    k4.metric("False alarms", int(cm[0, 1]), help=f"of {int((y_test == 0).sum())} healthy patients")
+    k3.metric("Missed cases", f"{int(cm[1, 0])} of {n_sick}")
+    k4.metric("False alarms", f"{int(cm[0, 1])} of {int((y_test == 0).sum())}")
     left, _ = st.columns([2, 3])
     with left:
-        show(plots.confusion_matrices({f"{BEST_MODEL}, threshold {threshold:.2f}": cm}))
+        show(plots.confusion_matrices({f"Threshold {threshold:.2f}": cm}))
 
-# --- Drivers -------------------------------------------------------------------
-with tab_drivers:
-    st.markdown("""
-**In plain language**, the models lean most on:
-
-1. **Blocked vessels on fluoroscopy.** More narrowed vessels on the dye X-ray test means higher risk. This is the strongest factor in both models.
-2. **Exercise stress test.** Low max heart rate, ST depression (a dip in the ECG during exercise) and chest pain brought on by exercise all point to a heart that struggles under load.
-3. **Thallium scan.** A normal scan lowers risk. A *reversible defect* (blood flow drops during exercise) raises it.
-4. **No chest pain ("asymptomatic").** Patients with no chest pain had *more* disease. They were referred for testing anyway, so this often means silent disease.
-5. **Male sex** raises predicted risk.
-
-These are associations in one hospital's data, not causes.
-""")
+with tab_features:
+    st.write(
+        "Both models lean on the same few measurements. The strongest is the number of major "
+        "vessels narrowed on fluoroscopy. Next come the exercise stress test (lower peak heart rate, "
+        "ST depression, chest pain during exercise) and the thallium scan, where a normal result "
+        "lowers the predicted risk."
+    )
+    st.write(
+        "Two results are less obvious. Patients with no chest pain had more disease than those "
+        "with it, probably because they were referred for testing for other reasons. And cholesterol "
+        "barely mattered on its own but carries some weight once the other factors are included. "
+        "None of this shows cause and effect."
+    )
     left, right = st.columns(2)
     with left:
         show(plots.logistic_coefficients(coefs))
     with right:
         show(plots.permutation_importance_chart(imp))
 
-# --- Data ----------------------------------------------------------------------
 with tab_data:
-    st.markdown(
-        "[UCI Heart Disease, Cleveland subset](https://archive.ics.uci.edu/dataset/45/heart+disease): "
-        "303 Cleveland Clinic patients who underwent coronary angiography (published 1988). 6 rows with missing values "
-        "were dropped → 297 patients, 46% with heart disease."
+    st.write(
+        "The data is the Cleveland subset of the "
+        "[UCI Heart Disease dataset](https://archive.ics.uci.edu/dataset/45/heart+disease): "
+        "303 patients who had coronary angiography, published in 1988. Six rows with missing "
+        "test results were dropped, leaving 297, of whom 46% had heart disease."
     )
     st.image(str(FIG_DIR / "03_risk_by_group.png"))
-    st.caption("Exploratory analysis: share of patients with heart disease by group (see notebooks/03_eda.ipynb).")
+    st.caption(
+        "This is a portfolio project on a small, decades-old dataset. It has not been validated "
+        "clinically and should not be used to diagnose anyone."
+    )
