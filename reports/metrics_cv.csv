@@ -1,0 +1,4 @@
+model,accuracy_mean,precision_mean,recall_mean,f1_mean,roc_auc_mean,accuracy_std,precision_std,recall_std,f1_std,roc_auc_std
+Logistic Regression,0.824,0.819,0.792,0.802,0.88,0.043,0.039,0.104,0.06,0.046
+Decision Tree,0.784,0.779,0.755,0.764,0.857,0.051,0.095,0.032,0.048,0.032
+Random Forest,0.815,0.814,0.772,0.789,0.92,0.049,0.045,0.11,0.07,0.039
